@@ -43,3 +43,6 @@ next-env.d.ts
 
 # implemenation plan file
 implementation_plan.md
+
+# clerk configuration (can include secrets)
+/.clerk/

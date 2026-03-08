@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db";
 import Task, { ITask } from "@/models/Task";
@@ -13,27 +14,31 @@ export type TaskDTO = {
 };
 
 export async function createTask(): Promise<void> {
+  const { userId } = await auth(); // server-side only — ID-spoofing proof
+  if (!userId) throw new Error("401 Unauthorized");
+
   if (!process.env.MONGODB_URI) {
-    throw new Error(
-      "MONGODB_URI is not set. Restart the dev server after updating .env.local."
-    );
+    throw new Error("MONGODB_URI is not set. Restart the dev server after updating .env.local.");
   }
 
   try {
     await connectDB();
     await Task.create({
-      userId: "test-user",
-      title: "My first HabitFlow task",
+      userId,
+      title: "My HabitFlow task",
       priority: "medium",
     });
-    revalidatePath("/"); // bust cache so the new task appears immediately
+    revalidatePath("/");
   } catch (err) {
     console.error("[createTask] Failed:", err);
-    throw err; // re-throw so the form surface can handle it
+    throw err;
   }
 }
 
 export async function getTasks(): Promise<TaskDTO[]> {
+  const { userId } = await auth(); // server-side only
+  if (!userId) return [];
+
   if (!process.env.MONGODB_URI) {
     console.warn("[getTasks] MONGODB_URI not set — returning empty list.");
     return [];
@@ -41,8 +46,8 @@ export async function getTasks(): Promise<TaskDTO[]> {
 
   try {
     await connectDB();
-    const tasks = await Task.find({ userId: "test-user" }).lean<ITask[]>();
-    // Explicitly serialize ObjectIds/Dates → strings to avoid Next.js POJO errors
+    const tasks = await Task.find({ userId }).lean<ITask[]>();
+    // Explicitly serialize ObjectIds/Dates → strings (Next.js POJO requirement)
     return tasks.map((t) => ({
       _id: String(t._id),
       title: t.title,
@@ -51,6 +56,6 @@ export async function getTasks(): Promise<TaskDTO[]> {
     }));
   } catch (err) {
     console.error("[getTasks] Failed:", err);
-    return []; // safe fallback — UI shows empty list instead of crashing
+    return [];
   }
 }
