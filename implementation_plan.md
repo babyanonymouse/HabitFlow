@@ -1,77 +1,94 @@
-# HF-3: Configure MongoDB Singleton Connection
+# HF-4: Define Strict Data Models (Task & Habit)
 
-Create a resilient, reusable MongoDB connection module that prevents the classic Next.js hot-reload problem where dev-mode re-evaluations create hundreds of open connections to Atlas.
-
-## Proposed Changes
-
-### Core Library
-
-#### [NEW] [db.ts](file:///media/Hybrid/Coding/habitflow/lib/db.ts)
-
-The singleton pattern works by stashing the connection promise on the Node.js `global` object. Because `global` persists across hot-reloads in development (unlike the module cache), we only ever open **one** real connection.
-
-```ts
-import mongoose from "mongoose";
-
-// 1. Type-augment global so TypeScript doesn't complain
-declare global {
-  var mongoose: { conn: mongoose.Connection | null; promise: Promise<mongoose.Connection> | null };
-}
-
-// 2. Initialise the cache bucket on first load
-const cached = global.mongoose ?? (global.mongoose = { conn: null, promise: null });
-
-export async function connectDB(): Promise<mongoose.Connection> {
-  if (cached.conn) return cached.conn;          // ✅ reuse existing
-
-  if (!process.env.MONGODB_URI) {
-    throw new Error("MONGODB_URI is not defined in .env.local");
-  }
-
-  if (!cached.promise) {
-    cached.promise = mongoose
-      .connect(process.env.MONGODB_URI)
-      .then((m) => {
-        console.log("✅ MongoDB connected");
-        return m.connection;
-      });
-  }
-
-  cached.conn = await cached.promise;
-  return cached.conn;
-}
-```
-
-> [!NOTE]
-> `connectDB()` is called at the top of every Server Action or Route Handler that needs data. It's a no-op when the connection is already live.
+Create fully-typed Mongoose schemas for the two core entities. TypeScript interfaces are defined first, then passed as generics to `mongoose.Schema` so the compiler enforces field contract at every model call site.
 
 ---
 
-### Dependencies
+## Proposed Changes
 
-Install `mongoose` (and its types, which are bundled):
+### [models/Task.ts](file:///media/Hybrid/Coding/habitflow/models/Task.ts) [NEW]
 
-```bash
-npm install mongoose
+```ts
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+export interface ITask extends Document {
+  title: string;
+  description?: string;
+  isCompleted: boolean;
+  privacyMode: boolean;   // filters task from AI context when true
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TaskSchema = new Schema<ITask>(
+  {
+    title:       { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    isCompleted: { type: Boolean, default: false },
+    privacyMode: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+const Task: Model<ITask> =
+  mongoose.models.Task ?? mongoose.model<ITask>("Task", TaskSchema);
+
+export default Task;
 ```
+
+---
+
+### [models/Habit.ts](file:///media/Hybrid/Coding/habitflow/models/Habit.ts) [NEW]
+
+```ts
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+interface IAiSuggestions {
+  content: string;
+  generatedAt: Date;
+}
+
+export interface IHabit extends Document {
+  title: string;
+  description?: string;
+  frequency: "daily" | "weekly";
+  isActive: boolean;
+  aiSuggestions?: IAiSuggestions;  // populated by M5 AI Activation
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const HabitSchema = new Schema<IHabit>(
+  {
+    title:       { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    frequency:   { type: String, enum: ["daily", "weekly"], default: "daily" },
+    isActive:    { type: Boolean, default: true },
+    aiSuggestions: {
+      content:     { type: String },
+      generatedAt: { type: Date },
+    },
+  },
+  { timestamps: true }
+);
+
+const Habit: Model<IHabit> =
+  mongoose.models.Habit ?? mongoose.model<IHabit>("Habit", HabitSchema);
+
+export default Habit;
+```
+
+> [!NOTE]
+> The `mongoose.models.X ?? mongoose.model(...)` guard prevents the "Cannot overwrite model once compiled" error that fires on Next.js hot-reloads — same pattern as the DB singleton.
 
 ---
 
 ## Verification Plan
 
-### Manual Verification — Connection log on dev server start
+TypeScript compiler is the primary validator:
 
-1. Add `MONGODB_URI` to `.env.local` (copy from [.env.example](file:///media/Hybrid/Coding/habitflow/.env.example), fill in your Atlas URI).
-2. Call `connectDB()` from [app/page.tsx](file:///media/Hybrid/Coding/habitflow/app/page.tsx) temporarily:
-   ```ts
-   // app/page.tsx (temp)
-   import { connectDB } from "@/lib/db";
-   export default async function Home() {
-     await connectDB();
-     return <main>HabitFlow</main>;
-   }
-   ```
-3. Run `npm run dev`.
-4. Open `http://localhost:3000` in the browser.
-5. **Expected:** Terminal prints `✅ MongoDB connected` on first load, and **does not** repeat it on subsequent hot-reloads — confirming the singleton is working.
-6. Remove the temp `connectDB()` call from [page.tsx](file:///media/Hybrid/Coding/habitflow/app/page.tsx) after confirming.
+```bash
+npx tsc --noEmit
+```
+
+Expected: **0 errors**. No runtime test needed at this stage — the models are consumed in HF-5.
