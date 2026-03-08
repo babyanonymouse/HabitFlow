@@ -1,82 +1,89 @@
-# 📝 HabitFlow – Smart To-Do & Habits App
+# 📝 HabitFlow – Production-Grade To-Do & Habits App
 
-A full-stack Next.js app for managing tasks, habits, and daily goals, with optional AI-assisted suggestions.
+## Overview
 
-## Project Overview
+HabitFlow is a full-stack, Next.js application designed to track tasks, habits, and recurring goals. It leverages a modern monolithic architecture, strict TypeScript typing, and edge-optimized AI to provide intelligent daily focus suggestions.
 
-HabitFlow helps users track their tasks and habits, view progress, and get AI-powered suggestions for better daily productivity.
+This is a production-ready build designed to demonstrate systems thinking, zero-drag deployment, and scalable database design.
 
-It's designed to teach full-stack development, API integration, state management, and cloud deployment while producing a tangible, client-ready app.
+### Primary Goals
 
-### Goals of this project:
+- **Modern Architecture:** Build a monolithic full-stack app using Next.js 16 (App Router) and React 19.
+- **Data Integrity:** Manage persistent data with MongoDB (Mongoose) using strict schema validation and caching patterns.
+- **Cost-Effective AI:** Integrate Google Gemini 1.5 Flash for intelligent suggestions, utilizing database caching to stay well within free-tier limits.
+- **DevOps & Discipline:** Enforce strict GitHub branch protection (squash merging, required PRs) and deploy seamlessly to Vercel.
 
-- Build a full-stack app using Next.js + Tailwind + MongoDB
-- Learn CRUD operations, API routes, and persistent storage
-- Implement React hooks and modular components
-- Explore AI features for habit suggestions (optional)
-- Deploy the app using Vercel / Render / AWS Free Tier
+---
 
 ## Learning Outcomes
 
-| Area             | Skills You'll Gain                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| Frontend         | React + Next.js components, pages, routing, forms, Tailwind CSS styling, dynamic rendering |
-| Backend          | Next.js API routes, RESTful endpoints, CRUD operations                                     |
-| Database         | MongoDB integration via Mongoose, data persistence, basic validation                       |
-| AI Features      | Integrating OpenAI or similar APIs for personalized suggestions                            |
-| Deployment       | Environment variables, hosting on Vercel/Render, simple CI/CD workflow                     |
-| State Management | React hooks (useState, useEffect), derived state, component communication                  |
-| UX & Polishing   | Responsive layouts, skeleton loaders, user feedback, optional dark mode                    |
+| Area           | Skills Demonstrated                                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Frontend       | React 19 Server Components vs. Client Components, Tailwind CSS 4 utility styling, `clsx`/`tailwind-merge` dynamic UI. |
+| Backend        | Next.js Server Actions (replacing legacy API routes), Singleton DB connection patterns.                               |
+| Database       | MongoDB integration via Mongoose, strict typing with interfaces, query optimization (indexing).                       |
+| AI Integration | Google Gemini API integration, prompt constraint design, AI response caching to prevent rate-limiting.                |
+| DevOps         | GitHub branch protection rules, environment variable management, Vercel Hobby Tier deployment.                        |
 
-## Features
-
-### Core Features
-
-- Create, edit, delete tasks and habits
-- Mark tasks/habits as complete/incomplete
-- View tasks/habits in a clear dashboard
-- Persist data using MongoDB
-- Responsive UI with Tailwind
-
-### Optional / Intermediate Features
-
-- AI-generated habit improvement suggestions
-- Daily task prioritization tips
-- Analytics (completed tasks today/week, progress trends)
+---
 
 ## Tech Stack
 
-| Layer              | Technology            | Purpose                            |
-| ------------------ | --------------------- | ---------------------------------- |
-| Frontend + Backend | Next.js               | Pages, routing, API routes         |
-| Styling            | Tailwind CSS          | Responsive and fast UI design      |
-| Database           | MongoDB + Mongoose    | Persistent task & habit storage    |
-| State Management   | React Hooks           | Form handling, dynamic UI          |
-| AI Integration     | OpenAI API (optional) | Habit/task suggestions             |
-| Deployment         | Vercel / Render / AWS | Hosting and environment management |
-| Version Control    | Git + GitHub          | Repo management, branching, PRs    |
-| API Calls          | Axios / Fetch         | Frontend ↔ backend communication   |
+| Layer      | Technology               | Purpose                                                    |
+| ---------- | ------------------------ | ---------------------------------------------------------- |
+| Framework  | Next.js 16 (App Router)  | Monolithic routing, Server Actions, SSR/SSG                |
+| Language   | TypeScript (Strict Mode) | Type safety, error prevention (`noUncheckedIndexedAccess`) |
+| Styling    | Tailwind CSS 4           | Zero-drag responsive UI design                             |
+| Database   | MongoDB + Mongoose       | Persistent storage with strict schemas                     |
+| AI Engine  | Google Gemini 1.5 Flash  | Fast, free-tier intelligent insights                       |
+| Icons & UI | Lucide React             | Standardized, lightweight iconography                      |
+| Deployment | Vercel                   | CI/CD and edge network hosting                             |
+
+---
+
+## Architecture & Data Flow
+
+### The "Hybrid Intelligence" Model
+
+> AI is a dependent service, not a core state manager.
+
+1. **Rules First:** The system fetches tasks and habits from MongoDB.
+2. **Privacy Check:** Tasks marked with `privacyMode: true` are filtered out.
+3. **Cache Check:** If `Habit.aiSuggestions.generatedAt` is under 24 hours old, the system returns the cached string _(Zero Cost)_.
+4. **AI Fallback:** If the cache is stale, the server securely calls Gemini, updates the MongoDB cache, and returns the insight to the UI.
+
+---
 
 ## Project Structure
 
 ```
-habitflow/
-│
-├─ public/               # Static assets, logo, favicon
-├─ styles/               # Tailwind CSS + global styles
-├─ pages/
-│   ├─ api/
-│   │   ├─ tasks.js      # CRUD endpoints for tasks
-│   │   └─ habits.js     # CRUD endpoints for habits
-│   ├─ index.js          # Dashboard page
-│   └─ _app.js           # Next.js global config
-├─ components/
-│   ├─ TaskCard.jsx
-│   ├─ HabitCard.jsx
-│   ├─ TaskForm.jsx
-│   └─ Header.jsx
-├─ lib/
-│   └─ db.js             # MongoDB connection helper
-├─ package.json
-└─ tailwind.config.js
+HabitFlow/
+├── .github/             # CI workflows and PR templates
+├── app/                 # Next.js App Router (Pages, Layouts)
+│   ├── (auth)/          # Route group for authentication
+│   └── dashboard/       # Protected views
+├── components/          # React Components
+│   ├── ui/              # Reusable atoms (Buttons, Inputs)
+│   └── dashboard/       # Complex blocks
+├── lib/                 # Core Logic
+│   ├── db.ts            # Singleton MongoDB connection
+│   └── actions/         # Server Actions (Backend CRUD)
+├── models/              # Mongoose Schemas (Task.ts, Habit.ts)
+├── public/              # Static assets
+├── .env.example         # Environment variable documentation
+├── package.json         # Dependency management
+└── tsconfig.json        # Strict TypeScript configuration
 ```
+
+---
+
+## Execution Milestones
+
+> **Shipping > Optimization.**
+
+- **M1: Foundation** _(Current)_ — Next.js setup, strict TypeScript config, flattened folder structure, GitHub branch protection active.
+- **M2: Data Layer** — MongoDB Singleton connection (`lib/db.ts`) and fully typed Mongoose Schemas with AI caching fields.
+- **M3: Core CRUD** _(No AI yet)_ — Implement Server Actions to create, read, update, and delete Tasks and Habits.
+- **M4: The UI** — Build the Dashboard, TaskCards, and HabitCards using Tailwind 4.
+- **M5: AI Activation** — Integrate Gemini API, hook up the caching logic, and display the Insights panel.
+- **M6: Production** — Vercel deployment and final environment variable configuration.
