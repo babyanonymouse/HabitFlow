@@ -1,110 +1,148 @@
-# HF-8 (Jira: HF-10): Identity Layer (Clerk Integration)
+# HF-8 (Jira: HF-8): The Grid — UI Foundation
 
-> **Note:** Due to Jira's auto-increment, your HF-8 (Identity Layer) was assigned key **HF-10**. Plan references both for clarity.
+Build the persistent dashboard shell: sticky sidebar on desktop, bottom nav on mobile.
+
+---
+
+## Dependencies
+
+```bash
+npm install lucide-react
+```
 
 ---
 
 ## Proposed Changes
 
-### Dependencies
+### [app/dashboard/layout.tsx](file:///media/Hybrid/Coding/habitflow/app/dashboard/layout.tsx) [NEW]
 
-```bash
-npm install @clerk/nextjs
-```
-
-### `.env.local` additions
-
-```bash
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-```
-
-Add both to Vercel env vars as well (HF-12 catch-up).
-
----
-
-### [middleware.ts](file:///media/Hybrid/Coding/habitflow/middleware.ts) [NEW]
-
-```ts
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-
-const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
-
-export default clerkMiddleware((auth, req) => {
-  if (!isPublicRoute(req)) auth().protect();
-});
-
-export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)"],
-};
-```
-
----
-
-### [app/layout.tsx](file:///media/Hybrid/Coding/habitflow/app/layout.tsx) [MODIFY]
-
-Wrap the root layout in `ClerkProvider` and add sign-in/sign-out UI:
+The dashboard shell — renders Sidebar + BottomNav around the page content.
 
 ```tsx
-import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import Sidebar from "@/components/ui/Sidebar";
+import BottomNav from "@/components/ui/BottomNav";
 
-// Inside RootLayout return:
-<ClerkProvider>
-  <html lang="en">
-    <body ...>
-      <header>
-        <SignedOut><SignInButton /></SignedOut>
-        <SignedIn><UserButton /></SignedIn>
-      </header>
-      {children}
-    </body>
-  </html>
-</ClerkProvider>
-```
-
----
-
-### [lib/actions/task.actions.ts](file:///media/Hybrid/Coding/habitflow/lib/actions/task.actions.ts) [MODIFY]
-
-Replace hardcoded `"test-user"` with `auth().userId` from Clerk:
-
-```ts
-import { auth } from "@clerk/nextjs/server";
-
-export async function createTask(): Promise<void> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("401 Unauthorized");
-  // ...
-  await Task.create({ userId, title: "My first HabitFlow task", priority: "medium" });
-  revalidatePath("/");
-}
-
-export async function getTasks(): Promise<TaskDTO[]> {
-  const { userId } = await auth();
-  if (!userId) return [];
-  // ...
-  const tasks = await Task.find({ userId }).lean<ITask[]>();
-  // ...
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen">
+      {/* Sticky sidebar – hidden on mobile */}
+      <Sidebar />
+      {/* Main content */}
+      <main className="flex-1 pb-20 md:pb-0 md:pl-64">{children}</main>
+      {/* Bottom nav – visible on mobile only */}
+      <BottomNav />
+    </div>
+  );
 }
 ```
 
 ---
 
-### [app/(auth)/sign-in/[[...sign-in]]/page.tsx](file:///media/Hybrid/Coding/habitflow/app/(auth)/sign-in/[[...sign-in]]/page.tsx) [NEW]
+### [components/ui/Sidebar.tsx](file:///media/Hybrid/Coding/habitflow/components/ui/Sidebar.tsx) [NEW]
 
 ```tsx
-import { SignIn } from "@clerk/nextjs";
-export default function SignInPage() {
-  return <SignIn />;
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, CheckSquare, Repeat2, Settings } from "lucide-react";
+
+const links = [
+  { href: "/dashboard", label: "Overview",  icon: LayoutDashboard },
+  { href: "/dashboard/tasks",  label: "Tasks",    icon: CheckSquare },
+  { href: "/dashboard/habits", label: "Habits",   icon: Repeat2 },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+];
+
+export default function Sidebar() {
+  const path = usePathname();
+  return (
+    <aside className="fixed hidden md:flex flex-col w-64 h-screen border-r border-zinc-800 bg-zinc-950 px-4 py-6 gap-1">
+      <p className="px-3 mb-4 text-sm font-semibold text-zinc-400 uppercase tracking-widest">HabitFlow</p>
+      {links.map(({ href, label, icon: Icon }) => (
+        <Link key={href} href={href}
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors
+            ${path === href ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"}`}>
+          <Icon size={16} /> {label}
+        </Link>
+      ))}
+    </aside>
+  );
 }
 ```
 
-### [app/(auth)/sign-up/[[...sign-up]]/page.tsx](file:///media/Hybrid/Coding/habitflow/app/(auth)/sign-up/[[...sign-up]]/page.tsx) [NEW]
+---
+
+### [components/ui/BottomNav.tsx](file:///media/Hybrid/Coding/habitflow/components/ui/BottomNav.tsx) [NEW]
 
 ```tsx
-import { SignUp } from "@clerk/nextjs";
-export default function SignUpPage() {
-  return <SignUp />;
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, CheckSquare, Repeat2, Settings } from "lucide-react";
+
+const links = [
+  { href: "/dashboard",          icon: LayoutDashboard, label: "Home" },
+  { href: "/dashboard/tasks",    icon: CheckSquare,     label: "Tasks" },
+  { href: "/dashboard/habits",   icon: Repeat2,         label: "Habits" },
+  { href: "/dashboard/settings", icon: Settings,        label: "Settings" },
+];
+
+export default function BottomNav() {
+  const path = usePathname();
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden border-t border-zinc-800 bg-zinc-950">
+      {links.map(({ href, icon: Icon, label }) => (
+        <Link key={href} href={href}
+          className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs transition-colors
+            ${path === href ? "text-white" : "text-zinc-500 hover:text-white"}`}>
+          <Icon size={20} /> {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+```
+
+---
+
+### [components/ui/EmptyState.tsx](file:///media/Hybrid/Coding/habitflow/components/ui/EmptyState.tsx) [NEW]
+
+```tsx
+import { LucideIcon } from "lucide-react";
+
+export default function EmptyState({ icon: Icon, title, description }: {
+  icon: LucideIcon; title: string; description: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-800 p-12 text-center">
+      <Icon size={32} className="text-zinc-600" />
+      <p className="font-medium text-zinc-300">{title}</p>
+      <p className="text-sm text-zinc-500">{description}</p>
+    </div>
+  );
+}
+```
+
+---
+
+### [app/dashboard/page.tsx](file:///media/Hybrid/Coding/habitflow/app/dashboard/page.tsx) [NEW]
+
+```tsx
+import EmptyState from "@/components/ui/EmptyState";
+import { CheckSquare, Repeat2 } from "lucide-react";
+
+export default function DashboardPage() {
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-xl font-semibold text-zinc-100">Overview</h1>
+      <div className="grid gap-4 md:grid-cols-2">
+        <EmptyState icon={CheckSquare} title="No tasks yet"
+          description="Create your first task to start tracking your work." />
+        <EmptyState icon={Repeat2} title="No habits yet"
+          description="Add a habit to start building your streaks." />
+      </div>
+    </div>
+  );
 }
 ```
 
@@ -112,13 +150,8 @@ export default function SignUpPage() {
 
 ## Verification Plan
 
-1. `npm run dev` → visit `/` — `Sign In` button visible in header.
-2. Click **Sign In** → Clerk-hosted modal appears.
-3. Create an account → redirected back to `/`.
-4. `UserButton` avatar visible in header.
-5. Visit `/dashboard` while signed out → redirected to sign-in.
-6. Click **+ Test DB** → task created; check Atlas — `userId` matches Clerk user ID (not `"test-user"`).
-
-```bash
-npx tsc --noEmit   # 0 errors expected
-```
+1. `npm run dev` → navigate to `/dashboard`.
+2. **Desktop (≥768px):** sticky sidebar visible on the left, content shifted right.
+3. **Mobile (<768px):** sidebar hidden, bottom nav visible and tappable.
+4. Active route is highlighted in both nav variants.
+5. `npx tsc --noEmit` → 0 errors.
