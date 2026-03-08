@@ -6,7 +6,7 @@ import { createTask } from "@/lib/actions/task.actions";
 export default function TestDbButton() {
   return (
     <form action={createTask}>
-      <button type="submit">+ Test DB</button>
+      <button type="submit" className="cursor-pointer bg-white text-black p-2 rounded-md">+ Test DB</button>
     </form>
   );
 }
