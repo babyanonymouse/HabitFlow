@@ -1,88 +1,77 @@
-# HF-1: Scaffold Next.js Base Architecture
+# HF-3: Configure MongoDB Singleton Connection
 
-Set up the complete base scaffolding for HabitFlow — the folder structure, TypeScript types, MongoDB connection layer, Mongoose models, API route stubs, reusable UI components, and a polished dashboard shell.
+Create a resilient, reusable MongoDB connection module that prevents the classic Next.js hot-reload problem where dev-mode re-evaluations create hundreds of open connections to Atlas.
 
 ## Proposed Changes
 
-### Foundation & Types
+### Core Library
 
-#### [MODIFY] [globals.css](file:///media/Hybrid/Coding/habitflow/app/globals.css)
-Add CSS design tokens (color palette, font sizing, spacing), dark mode variables, and base resets using `@theme` (Tailwind v4 syntax).
+#### [NEW] [db.ts](file:///media/Hybrid/Coding/habitflow/lib/db.ts)
 
-#### [NEW] types/index.ts
-Define shared TypeScript interfaces: `Task` and `Habit` with proper field typing (`_id`, `title`, `description`, `completed`, `createdAt`, `frequency`, etc.).
+The singleton pattern works by stashing the connection promise on the Node.js `global` object. Because `global` persists across hot-reloads in development (unlike the module cache), we only ever open **one** real connection.
 
----
+```ts
+import mongoose from "mongoose";
 
-### Database Layer
+// 1. Type-augment global so TypeScript doesn't complain
+declare global {
+  var mongoose: { conn: mongoose.Connection | null; promise: Promise<mongoose.Connection> | null };
+}
 
-#### [NEW] lib/db.ts
-MongoDB connection helper using Mongoose, with connection caching to avoid re-connecting on hot reloads (standard Next.js pattern).
+// 2. Initialise the cache bucket on first load
+const cached = global.mongoose ?? (global.mongoose = { conn: null, promise: null });
 
-#### [NEW] lib/models/Task.ts
-Mongoose schema + model for tasks (`title`, `description`, `completed`, `priority`, `dueDate`, `createdAt`).
+export async function connectDB(): Promise<mongoose.Connection> {
+  if (cached.conn) return cached.conn;          // ✅ reuse existing
 
-#### [NEW] lib/models/Habit.ts
-Mongoose schema + model for habits (`title`, `description`, `frequency`, `completedDates`, `createdAt`).
+  if (!process.env.MONGODB_URI) {
+    throw new Error("MONGODB_URI is not defined in .env.local");
+  }
 
----
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(process.env.MONGODB_URI)
+      .then((m) => {
+        console.log("✅ MongoDB connected");
+        return m.connection;
+      });
+  }
 
-### API Routes
-
-#### [NEW] app/api/tasks/route.ts
-Stub handlers: `GET` (return all tasks from MongoDB) and `POST` (create a new task). Fully typed with Next.js `NextResponse`.
-
-#### [NEW] app/api/habits/route.ts
-Stub handlers: `GET` (return all habits) and `POST` (create a new habit).
-
----
-
-### UI Components
-
-#### [NEW] components/Header.tsx
-App header with the HabitFlow logo/name, nav links (Tasks / Habits), and a simple responsive layout.
-
-#### [NEW] components/TaskCard.tsx
-A card component that displays a task's title, priority, due date, and completion status with a toggle button.
-
-#### [NEW] components/HabitCard.tsx
-A card component showing a habit's title, frequency, and last-completed date.
-
----
-
-### App Shell
-
-#### [MODIFY] app/layout.tsx
-Update app metadata (title → "HabitFlow", description), keep Geist fonts, add `<Header />`.
-
-#### [MODIFY] app/page.tsx
-Replace boilerplate with a dashboard shell: two sections (Tasks / Habits) with placeholder empty-state messages and a "+" button skeleton for adding items.
-
----
-
-### Config
-
-#### [NEW] .env.local.example
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
 ```
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/habitflow
+
+> [!NOTE]
+> `connectDB()` is called at the top of every Server Action or Route Handler that needs data. It's a no-op when the connection is already live.
+
+---
+
+### Dependencies
+
+Install `mongoose` (and its types, which are bundled):
+
+```bash
+npm install mongoose
 ```
 
 ---
 
 ## Verification Plan
 
-### Automated — TypeScript + Lint
-```bash
-cd /media/Hybrid/Coding/habitflow
-npm run build
-```
-Expected: zero TypeScript errors, zero ESLint errors, build succeeds.
+### Manual Verification — Connection log on dev server start
 
-### Manual — Dev Server
-```bash
-cd /media/Hybrid/Coding/habitflow
-npm run dev
-```
-1. Open `http://localhost:3000` — dashboard shell renders with Header, Tasks section, Habits section.
-2. Open `http://localhost:3000/api/tasks` — returns JSON (empty array or error message if no `MONGODB_URI` is set, **not** a crash).
-3. Open `http://localhost:3000/api/habits` — same as above.
+1. Add `MONGODB_URI` to `.env.local` (copy from [.env.example](file:///media/Hybrid/Coding/habitflow/.env.example), fill in your Atlas URI).
+2. Call `connectDB()` from [app/page.tsx](file:///media/Hybrid/Coding/habitflow/app/page.tsx) temporarily:
+   ```ts
+   // app/page.tsx (temp)
+   import { connectDB } from "@/lib/db";
+   export default async function Home() {
+     await connectDB();
+     return <main>HabitFlow</main>;
+   }
+   ```
+3. Run `npm run dev`.
+4. Open `http://localhost:3000` in the browser.
+5. **Expected:** Terminal prints `✅ MongoDB connected` on first load, and **does not** repeat it on subsequent hot-reloads — confirming the singleton is working.
+6. Remove the temp `connectDB()` call from [page.tsx](file:///media/Hybrid/Coding/habitflow/app/page.tsx) after confirming.
