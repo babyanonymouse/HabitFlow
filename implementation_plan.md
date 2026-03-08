@@ -1,91 +1,57 @@
-# HF-5: Build E2E Database Proof (Server Action)
+# HF-6: Initial Vercel Deployment
 
-Wire the full stack together: UI → Server Action → MongoDB → rendered list. This is a temporary proof-of-concept; the UI layer gets replaced in M4.
-
----
-
-## Proposed Changes
-
-### [lib/actions/task.actions.ts](file:///media/Hybrid/Coding/habitflow/lib/actions/task.actions.ts) [NEW]
-
-```ts
-"use server";
-
-import { connectDB } from "@/lib/db";
-import Task, { ITask } from "@/models/Task";
-
-export async function createTask(): Promise<void> {
-  await connectDB();
-  await Task.create({
-    userId: "test-user",
-    title: "My first HabitFlow task",
-    priority: "medium",
-  });
-}
-
-export async function getTasks(): Promise<ITask[]> {
-  await connectDB();
-  // .lean() returns plain JS objects (serializable to the client)
-  return Task.find({ userId: "test-user" }).lean<ITask[]>();
-}
-```
+Ship the Walking Skeleton to production and confirm the live URL can talk to MongoDB Atlas.
 
 ---
 
-### [components/ui/TestDbButton.tsx](file:///media/Hybrid/Coding/habitflow/components/ui/TestDbButton.tsx) [NEW]
+## Steps
 
-A Client Component so the button can call the Server Action interactively.
+### 1 — Push & Open a PR
 
-```tsx
-"use client";
-
-import { createTask } from "@/lib/actions/task.actions";
-
-export default function TestDbButton() {
-  return (
-    <form action={createTask}>
-      <button type="submit">+ Test DB</button>
-    </form>
-  );
-}
+```bash
+git push origin HF-2-Walking-Skeleton-Core-Infrastructure-Base-Architecture
 ```
 
-> [!NOTE]
-> Using a `<form action={serverAction}>` is the idiomatic Next.js 16 pattern — no `onClick` + `fetch` needed.
+Open a PR on GitHub → `main`. Title: `feat: Walking Skeleton (HF-2)`.
 
 ---
 
-### [app/page.tsx](file:///media/Hybrid/Coding/habitflow/app/page.tsx) [MODIFY]
+### 2 — Import to Vercel
 
-Make [Home](file:///media/Hybrid/Coding/habitflow/app/page.tsx#1-8) an `async` Server Component that fetches and renders tasks.
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Import the `HabitFlow` GitHub repository.
+3. Framework preset: **Next.js** (auto-detected).
+4. Leave build & output settings as defaults.
 
-```tsx
-import { getTasks } from "@/lib/actions/task.actions";
-import TestDbButton from "@/components/ui/TestDbButton";
+---
 
-export default async function Home() {
-  const tasks = await getTasks();
+### 3 — Add Environment Variables
 
-  return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>HabitFlow — DB Proof</h1>
-      <TestDbButton />
-      <ul style={{ marginTop: "1rem" }}>
-        {tasks.map((t) => (
-          <li key={String(t._id)}>{t.title}</li>
-        ))}
-      </ul>
-    </main>
-  );
-}
-```
+In the Vercel project → **Settings → Environment Variables**, add:
+
+| Key | Value | Environments |
+|-----|-------|-------------|
+| `MONGODB_URI` | Your Atlas connection string | Production, Preview, Development |
+
+> [!IMPORTANT]
+> Ensure the Atlas cluster **Network Access** list includes `0.0.0.0/0` (allow all IPs) for Vercel's dynamic IP pool, or use a Vercel-specific IP allowlist.
+
+---
+
+### 4 — Deploy & Verify
+
+- Trigger a deploy (automatic on PR merge, or manual via Vercel dashboard).
+- Open the live URL → page loads with **"HabitFlow — DB Proof"**.
+- Click **+ Test DB** → task appears in the list.
+- Check Vercel **Function Logs** → `✅ MongoDB connected` present, no errors.
 
 ---
 
 ## Verification Plan
 
-1. Add `MONGODB_URI` to `.env.local`.
-2. `npm run dev` → open `http://localhost:3000`.
-3. Click **+ Test DB** → page refreshes → new task appears in the list.
-4. **Expected terminal output:** `✅ MongoDB connected` on first load only (singleton confirmed).
-5. Check Atlas dashboard → `habitflow.tasks` collection → document exists.
+| Check | Expected |
+|-------|----------|
+| Live URL loads | Page renders without 500 error |
+| `+ Test DB` button | New task appears after click |
+| Vercel Function Logs | `✅ MongoDB connected` on first cold start |
+| Atlas dashboard | `habitflow.tasks` collection has documents |
