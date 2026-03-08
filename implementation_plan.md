@@ -1,94 +1,91 @@
-# HF-4: Define Strict Data Models (Task & Habit)
+# HF-5: Build E2E Database Proof (Server Action)
 
-Create fully-typed Mongoose schemas for the two core entities. TypeScript interfaces are defined first, then passed as generics to `mongoose.Schema` so the compiler enforces field contract at every model call site.
+Wire the full stack together: UI → Server Action → MongoDB → rendered list. This is a temporary proof-of-concept; the UI layer gets replaced in M4.
 
 ---
 
 ## Proposed Changes
 
-### [models/Task.ts](file:///media/Hybrid/Coding/habitflow/models/Task.ts) [NEW]
+### [lib/actions/task.actions.ts](file:///media/Hybrid/Coding/habitflow/lib/actions/task.actions.ts) [NEW]
 
 ```ts
-import mongoose, { Schema, Document, Model } from "mongoose";
+"use server";
 
-export interface ITask extends Document {
-  title: string;
-  description?: string;
-  isCompleted: boolean;
-  privacyMode: boolean;   // filters task from AI context when true
-  createdAt: Date;
-  updatedAt: Date;
+import { connectDB } from "@/lib/db";
+import Task, { ITask } from "@/models/Task";
+
+export async function createTask(): Promise<void> {
+  await connectDB();
+  await Task.create({
+    userId: "test-user",
+    title: "My first HabitFlow task",
+    priority: "medium",
+  });
 }
 
-const TaskSchema = new Schema<ITask>(
-  {
-    title:       { type: String, required: true, trim: true },
-    description: { type: String, trim: true },
-    isCompleted: { type: Boolean, default: false },
-    privacyMode: { type: Boolean, default: false },
-  },
-  { timestamps: true }
-);
-
-const Task: Model<ITask> =
-  mongoose.models.Task ?? mongoose.model<ITask>("Task", TaskSchema);
-
-export default Task;
+export async function getTasks(): Promise<ITask[]> {
+  await connectDB();
+  // .lean() returns plain JS objects (serializable to the client)
+  return Task.find({ userId: "test-user" }).lean<ITask[]>();
+}
 ```
 
 ---
 
-### [models/Habit.ts](file:///media/Hybrid/Coding/habitflow/models/Habit.ts) [NEW]
+### [components/ui/TestDbButton.tsx](file:///media/Hybrid/Coding/habitflow/components/ui/TestDbButton.tsx) [NEW]
 
-```ts
-import mongoose, { Schema, Document, Model } from "mongoose";
+A Client Component so the button can call the Server Action interactively.
 
-interface IAiSuggestions {
-  content: string;
-  generatedAt: Date;
+```tsx
+"use client";
+
+import { createTask } from "@/lib/actions/task.actions";
+
+export default function TestDbButton() {
+  return (
+    <form action={createTask}>
+      <button type="submit">+ Test DB</button>
+    </form>
+  );
 }
-
-export interface IHabit extends Document {
-  title: string;
-  description?: string;
-  frequency: "daily" | "weekly";
-  isActive: boolean;
-  aiSuggestions?: IAiSuggestions;  // populated by M5 AI Activation
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const HabitSchema = new Schema<IHabit>(
-  {
-    title:       { type: String, required: true, trim: true },
-    description: { type: String, trim: true },
-    frequency:   { type: String, enum: ["daily", "weekly"], default: "daily" },
-    isActive:    { type: Boolean, default: true },
-    aiSuggestions: {
-      content:     { type: String },
-      generatedAt: { type: Date },
-    },
-  },
-  { timestamps: true }
-);
-
-const Habit: Model<IHabit> =
-  mongoose.models.Habit ?? mongoose.model<IHabit>("Habit", HabitSchema);
-
-export default Habit;
 ```
 
 > [!NOTE]
-> The `mongoose.models.X ?? mongoose.model(...)` guard prevents the "Cannot overwrite model once compiled" error that fires on Next.js hot-reloads — same pattern as the DB singleton.
+> Using a `<form action={serverAction}>` is the idiomatic Next.js 16 pattern — no `onClick` + `fetch` needed.
+
+---
+
+### [app/page.tsx](file:///media/Hybrid/Coding/habitflow/app/page.tsx) [MODIFY]
+
+Make [Home](file:///media/Hybrid/Coding/habitflow/app/page.tsx#1-8) an `async` Server Component that fetches and renders tasks.
+
+```tsx
+import { getTasks } from "@/lib/actions/task.actions";
+import TestDbButton from "@/components/ui/TestDbButton";
+
+export default async function Home() {
+  const tasks = await getTasks();
+
+  return (
+    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
+      <h1>HabitFlow — DB Proof</h1>
+      <TestDbButton />
+      <ul style={{ marginTop: "1rem" }}>
+        {tasks.map((t) => (
+          <li key={String(t._id)}>{t.title}</li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
 
 ---
 
 ## Verification Plan
 
-TypeScript compiler is the primary validator:
-
-```bash
-npx tsc --noEmit
-```
-
-Expected: **0 errors**. No runtime test needed at this stage — the models are consumed in HF-5.
+1. Add `MONGODB_URI` to `.env.local`.
+2. `npm run dev` → open `http://localhost:3000`.
+3. Click **+ Test DB** → page refreshes → new task appears in the list.
+4. **Expected terminal output:** `✅ MongoDB connected` on first load only (singleton confirmed).
+5. Check Atlas dashboard → `habitflow.tasks` collection → document exists.
