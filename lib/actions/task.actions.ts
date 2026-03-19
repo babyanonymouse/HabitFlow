@@ -102,19 +102,36 @@ export async function updateTask(input: TaskUpdateInput): Promise<TaskDTO> {
   const parsed = taskUpdateSchema.parse(input);
   const { _id, ...rest } = parsed;
 
-  const update: Partial<ITask> = {};
-  if (typeof rest.title === "string") update.title = rest.title;
+  const updateDoc: any = { $set: {}, $unset: {} };
+  
+  if (typeof rest.title === "string") updateDoc.$set.title = rest.title;
+  
   if (rest.description !== undefined) {
     const trimmed = typeof rest.description === "string" ? rest.description.trim() : "";
-    update.description = trimmed.length > 0 ? trimmed : undefined;
+    if (trimmed.length > 0) {
+      updateDoc.$set.description = trimmed;
+    } else {
+      updateDoc.$unset.description = 1;
+    }
   }
-  if (rest.priority) update.priority = rest.priority;
-  if (rest.deadline !== undefined) update.deadline = rest.deadline;
-  if (rest.privacyMode !== undefined) update.privacyMode = rest.privacyMode;
+  
+  if (rest.priority) updateDoc.$set.priority = rest.priority;
+  
+  if (rest.deadline !== undefined) {
+    if (rest.deadline) {
+      updateDoc.$set.deadline = rest.deadline;
+    } else {
+      updateDoc.$unset.deadline = 1;
+    }
+  }
+  
+  if (rest.privacyMode !== undefined) updateDoc.$set.privacyMode = rest.privacyMode;
+
+  if (Object.keys(updateDoc.$unset).length === 0) delete updateDoc.$unset;
 
   try {
     await connectDB();
-    const updated = await Task.findOneAndUpdate({ _id, userId }, update, {
+    const updated = await Task.findOneAndUpdate({ _id, userId }, updateDoc, {
       new: true,
     });
     if (!updated) throw new Error("404 Not Found");
