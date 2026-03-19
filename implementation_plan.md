@@ -1,29 +1,36 @@
-# HabitFlow Landing Page Implementation Plan
+# Hybrid Landing Page Implementation Plan
 
-The current homepage is an unstyled database skeleton. We will transform this into a premium, high-converting landing page designed to WOW unauthenticated users. 
+We are adapting our existing landing page to incorporate the sleekest, highest-converting elements from the "Google Stitch" mockup while maintaining our sustainable Tailwind V4 stack and Next.js App Router architecture.
 
-## Proposed Changes
+## Proposed Integrations ("Best of Both Worlds")
 
-### 1. [app/page.tsx](file:///media/Hybrid/Coding/habitflow/app/page.tsx) [MODIFY]
-- **Auth Redirect:** We will import `auth()` from Clerk. If `userId` exists, the page will instantly `redirect("/dashboard")`. This ensures authenticated users bypass the marketing page.
-- **Hero Section:**
-  - **Headline:** "Master your habits. Achieve your goals."
-  - **Subheadline:** "HabitFlow helps you build consistency, track your progress, and take control of your daily routines with a beautiful, distraction-free interface."
-  - **Aesthetics:** We'll use a `zinc-950` background with a subtle, glowing radial gradient (e.g., mixing indigo and purple) behind the hero text to give it a modern, premium feel.
-- **Call-to-Action (CTA):**
-  - Primary Button: "Get Started" (links to `/sign-up`, solid white or brand color).
-  - Secondary Button: "Log In" (links to `/sign-in`, outlined/ghost style).
-- **Features Section:**
-  - A 3-column grid highlighting core features using `lucide-react` icons.
-  - Features: "Task Tracking" (CheckCircle), "Privacy First" (Shield), "Stay Consistent" (TrendingUp).
-  - Cards will feature glassmorphic styling (semi-transparent zinc-900 with subtle borders).
+### 1. Hero Section Upgrades [MODIFY]
+- **The "Pulse" Badge:** Add the Stitch `Version 2.0 Now Live` stylistic badge (small glowing pill) right above the main `H1` headline to create a sense of momentum.
+- **Copy:** Maintain our exact headline and subheadline (it maps to the actual product). Keep our CTA buttons, but maybe tweak the shape or glow.
 
-### 2. Assets [NEW]
-- **Hero Mockup Image:** I will use the AI image generation tool to create an aesthetic, abstract representation of a productivity dashboard to anchor the right side or bottom of the hero section.
+### 2. Hybrid App Mockup Enhancement [MODIFY]
+- **Realistic Habit Cards:** Instead of generic animated lines in our CSS Mockup, we will build out the 3 visual Habit Cards featured in the Stitch mock: 
+  - "Hydration" (with a Droplet icon and a 2.4L progress bar)
+  - "Deep Work" (with a Zap/Lightning icon and 4.5h progress bar)
+  - "Meditation" (with a Brain/Lotus icon and 20m progress bar)
+- We will use standard Lucide React icons to replicate these widgets within our glassy, hover-tilted dashboard frame.
+
+### 3. The Bottom "Bento CTA" [NEW]
+- We will add the high-converting secondary CTA section from Stitch right above the footer.
+- **Left Block:** A large, dark card stating "Ready to enter the void? Join 50,000+ high-performers" with a final "Get Early Access" or "Sign Up" button.
+- **Right Block:** A bold, solid-color card (Indigo or Purple) shouting "98% Success Rate" with an animated icon, identical to the Stitch flow-state metrics.
+
+### 4. Footer Expansion [MODIFY]
+- Expand our currently minimalistic footer to be a dual-layout footer.
+- Keep the `A PeoLabs Project` tag on the bottom right.
+- Add standard links (`Privacy`, `Terms`, `Status`, `Contact`) aligned in the center.
+
+## Technical Details
+- We are **rejecting** the heavy Material 3 Tailwind config override found in the Stitch file. We will recreate all visual treatments using our existing modern Tailwind V4 setup (`bg-zinc-950`, `text-indigo-400`, native `blur`).
+- No changes to routing or `auth()`.
 
 ## Verification Plan
-
-### Manual Verification
-1. I will ask you to visit `http://localhost:3000` while **logged out** to review the aesthetics, layout, responsiveness, and gradients.
-2. I'll ask you to verify that clicking "Get Started" and "Log In" take you to the correct Clerk authentication pages.
-3. I'll ask you to log in, and then attempt to visit `http://localhost:3000` directly to ensure it automatically redirects you to `/dashboard`.
+1. Check that the new "Version 2.0" badge matches the styling perfectly.
+2. Confirm the dashboard mockup accurately displays the 3 new tracking widgets.
+3. Validate typography and hover effects on the new Bottom Bento CTA section.
+4. Ensure the Footer expansions break correctly on mobile without causing horizontal scrolling.

@@ -41,8 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# implemenation plan file
-implementation_plan.md
+# landing page stitch
+/landing_stitch.html
 
 # clerk configuration (can include secrets)
 /.clerk/
+implementation_plan.md
