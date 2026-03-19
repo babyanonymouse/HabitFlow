@@ -49,6 +49,7 @@ export default function RootLayout({
             </Show>
           </header>
           {children}
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
