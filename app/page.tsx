@@ -48,11 +48,11 @@ export default async function LandingPage() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
         {/* Abstract Glows */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-indigo-600/20 blur-[100px] rounded-full pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 translate-x-1/4 -translate-y-1/4 w-[250px] h-[250px] sm:w-[400px] sm:h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-75 h-75 sm:w-125 sm:h-125 bg-indigo-600/20 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 translate-x-1/4 -translate-y-1/4 w-62.5 h-62.5 sm:w-100 sm:h-100 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
 
         <div className="relative mx-auto max-w-4xl text-center z-10">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-500 mb-6 drop-shadow-sm leading-tight">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-linear-to-br from-white to-zinc-500 mb-6 drop-shadow-sm leading-tight">
             Master your habits.<br />Achieve your goals.
           </h1>
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-zinc-400 mb-10 leading-relaxed px-4">
@@ -77,11 +77,11 @@ export default async function LandingPage() {
 
         {/* CSS Hybrid App UI Mockup */}
         <div className="relative mx-auto mt-20 max-w-5xl z-10 perspective-[2000px] hidden sm:block">
-          <div className="rounded-xl ring-1 ring-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-2xl shadow-indigo-500/10 overflow-hidden flex transform transition-transform duration-700 ease-out hover:scale-[1.01] hover:-translate-y-2 origin-bottom h-[450px]">
+          <div className="rounded-xl ring-1 ring-white/10 bg-zinc-950/90 backdrop-blur-2xl shadow-2xl shadow-indigo-500/10 overflow-hidden flex transform transition-transform duration-700 ease-out hover:scale-[1.01] hover:-translate-y-2 origin-bottom h-112.5">
             {/* Sidebar Mockup */}
             <div className="hidden md:flex flex-col w-64 border-r border-white/5 bg-zinc-900/30 p-5 shrink-0">
               <div className="flex items-center gap-3 mb-10 px-2 mt-2">
-                <div className="w-7 h-7 rounded bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-inner" />
+                <div className="w-7 h-7 rounded bg-linear-to-tr from-indigo-500 to-purple-500 shadow-inner" />
                 <div className="h-4 w-24 bg-zinc-800 rounded animate-pulse" />
               </div>
               <div className="space-y-4">
@@ -101,7 +101,7 @@ export default async function LandingPage() {
             </div>
             
             {/* Main Content Mockup */}
-            <div className="flex-1 p-8 md:p-10 relative bg-gradient-to-br from-zinc-900/10 to-zinc-950">
+            <div className="flex-1 p-8 md:p-10 relative bg-linear-to-br from-zinc-900/10 to-zinc-950">
               <div className="flex items-center justify-between mb-10">
                 <div className="h-8 w-48 bg-zinc-800 rounded-lg animate-pulse" />
                 <div className="h-9 w-28 bg-indigo-600 rounded-lg shadow-sm flex items-center justify-center opacity-90">
@@ -130,7 +130,7 @@ export default async function LandingPage() {
           </div>
           
           {/* Overlay gradient to fade out bottom cleanly */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-zinc-950 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-zinc-950 to-transparent pointer-events-none" />
         </div>
       </section>
 
@@ -162,7 +162,7 @@ export default async function LandingPage() {
           </div>
 
           {/* Secondary Feature 2 (Spans 3 cols on desktop) */}
-          <div className="md:col-span-3 rounded-3xl bg-gradient-to-r from-zinc-900/60 to-zinc-900/20 border border-white/5 p-8 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 group">
+          <div className="md:col-span-3 rounded-3xl bg-linear-to-r from-zinc-900/60 to-zinc-900/20 border border-white/5 p-8 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 group">
             <div className="max-w-xl">
               <Shield className="w-8 h-8 text-purple-400 mb-6" />
               <h3 className="text-2xl font-bold mb-3 text-zinc-100">Privacy First Architecture</h3>
