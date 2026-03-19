@@ -11,8 +11,7 @@ export interface IHabit extends Document {
   description?: string;         // max 500 chars
   frequency: "daily" | "weekly";
   isActive: boolean;
-  completedDates: Date[];       // historical completion log
-  streak: number;               // current consecutive streak count
+  completedDates: string[];     // historical completion log (YYYY-MM-DD)
   aiSuggestions?: IAiSuggestions; // populated by M5 AI Activation
   createdAt: Date;
   updatedAt: Date;
@@ -25,8 +24,7 @@ const HabitSchema = new Schema<IHabit>(
     description: { type: String, trim: true, maxlength: 500 },
     frequency:   { type: String, enum: ["daily", "weekly"], default: "daily" },
     isActive:    { type: Boolean, default: true },
-    completedDates: [{ type: Date }],
-    streak:      { type: Number, default: 0 },
+    completedDates: [{ type: String }],
     aiSuggestions: {
       _id:         false,        // no unnecessary nested ObjectIDs
       content:     { type: String },

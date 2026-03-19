@@ -1,36 +1,39 @@
-# Hybrid Landing Page Implementation Plan
+# HF-12 Implementation Plan: Habit Engine (Tracking Logic)
 
-We are adapting our existing landing page to incorporate the sleekest, highest-converting elements from the "Google Stitch" mockup while maintaining our sustainable Tailwind V4 stack and Next.js App Router architecture.
+We are addressing the core habit tracking logic as outlined in Jira Task **HF-12**.
 
-## Proposed Integrations ("Best of Both Worlds")
+## Proposed Changes
 
-### 1. Hero Section Upgrades [MODIFY]
-- **The "Pulse" Badge:** Add the Stitch `Version 2.0 Now Live` stylistic badge (small glowing pill) right above the main `H1` headline to create a sense of momentum.
-- **Copy:** Maintain our exact headline and subheadline (it maps to the actual product). Keep our CTA buttons, but maybe tweak the shape or glow.
+### 1. Habit Validator Schemas (`lib/validators/habit.ts`) [NEW]
+- Create Zod schemas for `habitCreateSchema`, `habitUpdateSchema`, and `habitCheckOffSchema`.
 
-### 2. Hybrid App Mockup Enhancement [MODIFY]
-- **Realistic Habit Cards:** Instead of generic animated lines in our CSS Mockup, we will build out the 3 visual Habit Cards featured in the Stitch mock: 
-  - "Hydration" (with a Droplet icon and a 2.4L progress bar)
-  - "Deep Work" (with a Zap/Lightning icon and 4.5h progress bar)
-  - "Meditation" (with a Brain/Lotus icon and 20m progress bar)
-- We will use standard Lucide React icons to replicate these widgets within our glassy, hover-tilted dashboard frame.
+### 2. Server Actions (`lib/actions/habit.actions.ts`) [NEW]
+- **`getHabits()`**: Query [Habit](file:///media/Hybrid/Coding/habitflow/models/Habit.ts#8-20) model filtered strictly by `auth().userId`.
+- **`createHabit(input)` / `deleteHabit(id)`**: Standard CRUD operations bound to `userId`.
+- **`checkOffHabit(habitId)`**:
+  - **Replay Protection**: Read the habit's `completedDates` array. Standardize the current time to midnight UTC (or local midnight relative to the server). If the last entry matches today's date, throw an error preventing double check-offs on the exact same day.
+  - **Streak Recalculation**: If the previous date in the array is exactly *yesterday*, increment the `streak` by 1. Otherwise (if they missed a day), reset the `streak` back to 1.
+  - Append the new date to `completedDates` and save to MongoDB. Revalidate the path.
 
-### 3. The Bottom "Bento CTA" [NEW]
-- We will add the high-converting secondary CTA section from Stitch right above the footer.
-- **Left Block:** A large, dark card stating "Ready to enter the void? Join 50,000+ high-performers" with a final "Get Early Access" or "Sign Up" button.
-- **Right Block:** A bold, solid-color card (Indigo or Purple) shouting "98% Success Rate" with an animated icon, identical to the Stitch flow-state metrics.
+### 3. Habit Frontend Components (`components/habits/HabitList.tsx` & `HabitItem.tsx`) [NEW]
+- Build a map/list rendering the habits.
+- **Card UI**: Each habit card will display:
+  - Title and Description
+  - **"Streak" Count**: Emphasized visually (e.g., "🔥 5 Day Streak").
+  - **"Last Completed"**: Human-readable relative date (e.g., "Last completed: Today", "Last completed: 2 days ago").
+- **Check-off Action Button**: 
+  - If the "Last Completed" date evaluates to today, the button changes to a disabled "Checked Off" state.
+  - If not, it exposes an interactive "Complete for Today" button linked to the `checkOffHabit` server action.
 
-### 4. Footer Expansion [MODIFY]
-- Expand our currently minimalistic footer to be a dual-layout footer.
-- Keep the `A PeoLabs Project` tag on the bottom right.
-- Add standard links (`Privacy`, `Terms`, `Status`, `Contact`) aligned in the center.
+### 4. Dashboard Page (`app/dashboard/habits/page.tsx`) [NEW]
+- Fetch data securely server-side using `getHabits()` and pass it down to the Client components for instant optimistic updates.
 
-## Technical Details
-- We are **rejecting** the heavy Material 3 Tailwind config override found in the Stitch file. We will recreate all visual treatments using our existing modern Tailwind V4 setup (`bg-zinc-950`, `text-indigo-400`, native `blur`).
-- No changes to routing or `auth()`.
+## User Review Required
+> [!IMPORTANT]
+> The Definition of Done specifies that we should *"Ignore until Sprint 3: AI suggestions (`aiSuggestions` field)."* I will explicitly leave the `aiSuggestions` field untouched across all endpoints.
 
 ## Verification Plan
-1. Check that the new "Version 2.0" badge matches the styling perfectly.
-2. Confirm the dashboard mockup accurately displays the 3 new tracking widgets.
-3. Validate typography and hover effects on the new Bottom Bento CTA section.
-4. Ensure the Footer expansions break correctly on mobile without causing horizontal scrolling.
+### Automated & Manual Verification
+1. Attempt to check off a habit. Verify the `streak` correctly increments to 1.
+2. Attempt to check off the same habit again instantly; the UI should block it, and the Server Action should reject the attempt if circumvented.
+3. Validate that logging into another account appropriately conceals the habits of the original user via the `userId` filter.
