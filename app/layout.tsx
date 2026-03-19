@@ -6,6 +6,7 @@ import {
   UserButton,
   Show,
 } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = Geist({
