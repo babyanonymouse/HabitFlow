@@ -6,6 +6,7 @@ import {
   UserButton,
   Show,
 } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,6 +49,7 @@ export default function RootLayout({
             </Show>
           </header>
           {children}
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
