@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 // Augment Node.js global to cache the connection across Next.js hot-reloads.
 // Renamed to `mongooseCache` to avoid colliding with the mongoose library import.
 declare global {
-  // eslint-disable-next-line no-var
   var mongooseCache: {
     conn: mongoose.Connection | null;
     promise: Promise<mongoose.Connection> | null;
