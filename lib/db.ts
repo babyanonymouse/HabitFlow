@@ -29,12 +29,10 @@ export async function connectDB(): Promise<mongoose.Connection> {
 
   // Kick off the connection only once; subsequent calls wait on the same promise.
   if (!cached.promise) {
-    cached.promise = mongoose
-      .connect(process.env.MONGODB_URI)
-      .then((m) => {
-        console.log("✅ MongoDB connected");
-        return m.connection;
-      });
+    cached.promise = mongoose.connect(process.env.MONGODB_URI).then((m) => {
+      console.log("✅ MongoDB connected");
+      return m.connection;
+    });
   }
 
   // Cache-poisoning prevention: if the connection attempt fails, reset the
