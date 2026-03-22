@@ -1,36 +1,34 @@
-# Hybrid Landing Page Implementation Plan
+# Redesign Home Tab as an "Active Nerve Center" (Zero-Drag UX)
 
-We are adapting our existing landing page to incorporate the sleekest, highest-converting elements from the "Google Stitch" mockup while maintaining our sustainable Tailwind V4 stack and Next.js App Router architecture.
+## Goal
+Transition the Home tab from a passive skeleton to a high-density, action-oriented dashboard to minimize "Time-to-Action". 
 
-## Proposed Integrations ("Best of Both Worlds")
+## Epic/Task Link
+*Note: I searched both GitHub Projects/Issues and Jira for any linked Epic or Task (e.g., searching for "Active Nerve Center", "Zero-Drag UX", "HabitFlow"), but no parent Epic or Task was found. If this should be tracked under a specific Epic, please let me know!*
 
-### 1. Hero Section Upgrades [MODIFY]
-- **The "Pulse" Badge:** Add the Stitch `Version 2.0 Now Live` stylistic badge (small glowing pill) right above the main `H1` headline to create a sense of momentum.
-- **Copy:** Maintain our exact headline and subheadline (it maps to the actual product). Keep our CTA buttons, but maybe tweak the shape or glow.
+## Proposed Changes
 
-### 2. Hybrid App Mockup Enhancement [MODIFY]
-- **Realistic Habit Cards:** Instead of generic animated lines in our CSS Mockup, we will build out the 3 visual Habit Cards featured in the Stitch mock: 
-  - "Hydration" (with a Droplet icon and a 2.4L progress bar)
-  - "Deep Work" (with a Zap/Lightning icon and 4.5h progress bar)
-  - "Meditation" (with a Brain/Lotus icon and 20m progress bar)
-- We will use standard Lucide React icons to replicate these widgets within our glassy, hover-tilted dashboard frame.
+### Backend Actions & Utilities
+#### [NEW] `lib/actions/summary.actions.ts`
+- Implement `getDashboardSummary()` which fetches pending habits and priority tasks in a single round-trip.
+- Filter pending habits avoiding those already completed today.
+- Return serialized `pendingHabits`, `priorityTasks`, and a dynamic `greeting`.
 
-### 3. The Bottom "Bento CTA" [NEW]
-- We will add the high-converting secondary CTA section from Stitch right above the footer.
-- **Left Block:** A large, dark card stating "Ready to enter the void? Join 50,000+ high-performers" with a final "Get Early Access" or "Sign Up" button.
-- **Right Block:** A bold, solid-color card (Indigo or Purple) shouting "98% Success Rate" with an animated icon, identical to the Stitch flow-state metrics.
+#### [NEW] `lib/utils/serialization.ts`
+- Implement a helper function `serialize()` to ensure all MongoDB `_id` and `Date` objects are converted to strings before reaching the client, preventing Next.js serialization errors.
 
-### 4. Footer Expansion [MODIFY]
-- Expand our currently minimalistic footer to be a dual-layout footer.
-- Keep the `A PeoLabs Project` tag on the bottom right.
-- Add standard links (`Privacy`, `Terms`, `Status`, `Contact`) aligned in the center.
-
-## Technical Details
-- We are **rejecting** the heavy Material 3 Tailwind config override found in the Stitch file. We will recreate all visual treatments using our existing modern Tailwind V4 setup (`bg-zinc-950`, `text-indigo-400`, native `blur`).
-- No changes to routing or `auth()`.
+### Dashboard Frontend
+#### [MODIFY] [app/dashboard/page.tsx](file:///media/Hybrid/Coding/habitflow/app/dashboard/page.tsx)
+- Replace existing `EmptyState` components.
+- Call `getDashboardSummary()` in the server component.
+- **Greeting Header**: Display the dynamic greeting and summary string ("You have X habits to maintain and Y priority tasks.").
+- **Habit Carousel Element**: Render horizontally scrolling cards for habits. Add "Check Off" buttons and optimistic UI logic (`useOptimistic`).
+- **Priority Task List**: Vertical list of top 3 high-priority tasks with fast optimistic check-off.
+- **AI Intelligence Slot**: Glassmorphic card with a subtle indigo-500 glow stating "AI is analyzing your patterns... check back tomorrow for suggestions."
 
 ## Verification Plan
-1. Check that the new "Version 2.0" badge matches the styling perfectly.
-2. Confirm the dashboard mockup accurately displays the 3 new tracking widgets.
-3. Validate typography and hover effects on the new Bottom Bento CTA section.
-4. Ensure the Footer expansions break correctly on mobile without causing horizontal scrolling.
+
+### Automated/Manual Verification
+1. **Serialization Check**: Ensure no server-side Next.js serialization errors occur when navigating to the Home tab.
+2. **Optimistic Updates**: Manually test checking off a habit and a priority task on the Home tab. Ensure the UI updates immediately and the items are completed in the database.
+3. **Responsive Design**: Verify the habit carousel works properly with horizontal scrolling on mobile emulation and ensure there is zero horizontal overflow on the main page layout.
