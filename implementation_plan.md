@@ -1,39 +1,34 @@
-# HF-12 Implementation Plan: Habit Engine (Tracking Logic)
+# Redesign Home Tab as an "Active Nerve Center" (Zero-Drag UX)
 
-We are addressing the core habit tracking logic as outlined in Jira Task **HF-12**.
+## Goal
+Transition the Home tab from a passive skeleton to a high-density, action-oriented dashboard to minimize "Time-to-Action". 
+
+## Epic/Task Link
+*Note: I searched both GitHub Projects/Issues and Jira for any linked Epic or Task (e.g., searching for "Active Nerve Center", "Zero-Drag UX", "HabitFlow"), but no parent Epic or Task was found. If this should be tracked under a specific Epic, please let me know!*
 
 ## Proposed Changes
 
-### 1. Habit Validator Schemas (`lib/validators/habit.ts`) [NEW]
-- Create Zod schemas for `habitCreateSchema`, `habitUpdateSchema`, and `habitCheckOffSchema`.
+### Backend Actions & Utilities
+#### [NEW] `lib/actions/summary.actions.ts`
+- Implement `getDashboardSummary()` which fetches pending habits and priority tasks in a single round-trip.
+- Filter pending habits avoiding those already completed today.
+- Return serialized `pendingHabits`, `priorityTasks`, and a dynamic `greeting`.
 
-### 2. Server Actions (`lib/actions/habit.actions.ts`) [NEW]
-- **`getHabits()`**: Query [Habit](file:///media/Hybrid/Coding/habitflow/models/Habit.ts#8-20) model filtered strictly by `auth().userId`.
-- **`createHabit(input)` / `deleteHabit(id)`**: Standard CRUD operations bound to `userId`.
-- **`checkOffHabit(habitId)`**:
-  - **Replay Protection**: Read the habit's `completedDates` array. Standardize the current time to midnight UTC (or local midnight relative to the server). If the last entry matches today's date, throw an error preventing double check-offs on the exact same day.
-  - **Streak Recalculation**: If the previous date in the array is exactly *yesterday*, increment the `streak` by 1. Otherwise (if they missed a day), reset the `streak` back to 1.
-  - Append the new date to `completedDates` and save to MongoDB. Revalidate the path.
+#### [NEW] `lib/utils/serialization.ts`
+- Implement a helper function `serialize()` to ensure all MongoDB `_id` and `Date` objects are converted to strings before reaching the client, preventing Next.js serialization errors.
 
-### 3. Habit Frontend Components (`components/habits/HabitList.tsx` & `HabitItem.tsx`) [NEW]
-- Build a map/list rendering the habits.
-- **Card UI**: Each habit card will display:
-  - Title and Description
-  - **"Streak" Count**: Emphasized visually (e.g., "🔥 5 Day Streak").
-  - **"Last Completed"**: Human-readable relative date (e.g., "Last completed: Today", "Last completed: 2 days ago").
-- **Check-off Action Button**: 
-  - If the "Last Completed" date evaluates to today, the button changes to a disabled "Checked Off" state.
-  - If not, it exposes an interactive "Complete for Today" button linked to the `checkOffHabit` server action.
-
-### 4. Dashboard Page (`app/dashboard/habits/page.tsx`) [NEW]
-- Fetch data securely server-side using `getHabits()` and pass it down to the Client components for instant optimistic updates.
-
-## User Review Required
-> [!IMPORTANT]
-> The Definition of Done specifies that we should *"Ignore until Sprint 3: AI suggestions (`aiSuggestions` field)."* I will explicitly leave the `aiSuggestions` field untouched across all endpoints.
+### Dashboard Frontend
+#### [MODIFY] [app/dashboard/page.tsx](file:///media/Hybrid/Coding/habitflow/app/dashboard/page.tsx)
+- Replace existing `EmptyState` components.
+- Call `getDashboardSummary()` in the server component.
+- **Greeting Header**: Display the dynamic greeting and summary string ("You have X habits to maintain and Y priority tasks.").
+- **Habit Carousel Element**: Render horizontally scrolling cards for habits. Add "Check Off" buttons and optimistic UI logic (`useOptimistic`).
+- **Priority Task List**: Vertical list of top 3 high-priority tasks with fast optimistic check-off.
+- **AI Intelligence Slot**: Glassmorphic card with a subtle indigo-500 glow stating "AI is analyzing your patterns... check back tomorrow for suggestions."
 
 ## Verification Plan
-### Automated & Manual Verification
-1. Attempt to check off a habit. Verify the `streak` correctly increments to 1.
-2. Attempt to check off the same habit again instantly; the UI should block it, and the Server Action should reject the attempt if circumvented.
-3. Validate that logging into another account appropriately conceals the habits of the original user via the `userId` filter.
+
+### Automated/Manual Verification
+1. **Serialization Check**: Ensure no server-side Next.js serialization errors occur when navigating to the Home tab.
+2. **Optimistic Updates**: Manually test checking off a habit and a priority task on the Home tab. Ensure the UI updates immediately and the items are completed in the database.
+3. **Responsive Design**: Verify the habit carousel works properly with horizontal scrolling on mobile emulation and ensure there is zero horizontal overflow on the main page layout.
