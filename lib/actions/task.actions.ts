@@ -174,9 +174,12 @@ export async function setTaskCompleted(
 
   try {
     await connectDB();
+    // Must use explicit $set/$unset — a plain object is treated as a
+    // replacement document by Mongoose's findOneAndUpdate, which would
+    // wipe userId/title/etc. and never write completedAt to the DB.
     const updatePayload = parsed.isCompleted
-      ? { isCompleted: true, completedAt: new Date() }
-      : { isCompleted: false, $unset: { completedAt: 1 } };
+      ? { $set: { isCompleted: true, completedAt: new Date() } }
+      : { $set: { isCompleted: false }, $unset: { completedAt: 1 } };
 
     const updated = await Task.findOneAndUpdate(
       { _id: parsed._id, userId },
