@@ -17,7 +17,7 @@ export default function HabitCarousel({ habits, onCheckOff, todayStr }: { habits
             return (
               <div 
                 key={habit._id} 
-                className="snap-start shrink-0 w-[85%] sm:w-[280px] bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col relative overflow-hidden group min-h-[140px]"
+                className="snap-start shrink-0 w-[85%] sm:w-70 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col relative overflow-hidden group min-h-35"
               >
                 {/* Glow */}
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />

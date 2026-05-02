@@ -2,7 +2,7 @@ import { Sparkles } from "lucide-react";
 
 export default function AiIntelligenceSlot() {
   return (
-    <div className="relative overflow-hidden p-6 rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.05] to-purple-500/[0.05]">
+    <div className="relative overflow-hidden p-6 rounded-2xl border border-indigo-500/20 bg-linear-to-br from-indigo-500/5 to-purple-500/5">
       {/* Subtle Glow */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" />
       

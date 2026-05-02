@@ -9,7 +9,7 @@
 | Concept / Skill       | What to Learn                      | How to Practice in HabitFlow                   | Status |
 | --------------------- | ---------------------------------- | ---------------------------------------------- | ------ |
 | React Components      | Functional components, props       | Build TaskCard, HabitCard, TaskForm            | ✅     |
-| React Hooks           | useState, useEffect, derived state | Manage task list, form input, API fetch states | ⬜     |
+| React Hooks           | useState, useEffect, derived state | Manage task list, form input, API fetch states | ✅     |
 | Next.js Pages         | File-based routing                 | Dashboard pages/index.js                       | ✅     |
 | Next.js SSR/SSG       | Pre-rendered pages                 | Experiment with task dashboard rendering       | ✅     |
 | Event Handling        | Forms, buttons                     | Add/edit/delete task forms                     | ✅     |
@@ -40,9 +40,9 @@
 | Concept / Skill | What to Learn                | How to Practice in HabitFlow      | Status |
 | --------------- | ---------------------------- | --------------------------------- | ------ |
 | API Consumption | Server Actions fetch         | Call Server Actions from frontend | ✅     |
-| State Sync      | React + backend              | Update UI on successful API calls | ⬜     |
+| State Sync      | React + backend              | Update UI on successful API calls | ✅     |
 | Form Management | Controlled components        | Add/edit tasks & habits forms     | ✅     |
-| Derived State   | Task stats (completed/total) | Display analytics on dashboard    | ⬜     |
+| Derived State   | Task stats (completed/total) | Display analytics on dashboard    | ✅     |
 
 ## 5. Optional AI/Advanced Features
 
@@ -77,7 +77,7 @@
 | M1        | Project skeleton | Next.js + Tailwind + MongoDB setup        | ✅     |
 | M2        | CRUD API         | Tasks CRUD & Server Actions               | ✅     |
 | M3        | Frontend forms   | Add/Edit/Delete tasks & habits            | ✅     |
-| M4        | Dashboard        | Display tasks/habits, completed stats     | ⬜     |
+| M4        | Dashboard        | Display tasks/habits, completed stats     | ✅     |
 | M5        | Optional AI      | Habit suggestions                         | ⬜     |
 | M6        | Polishing        | Skeleton loaders, responsive UI, feedback | ⬜     |
 | M7        | Deployment       | Vercel Analytics integration & Push       | ✅     |
