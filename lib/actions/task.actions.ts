@@ -1,5 +1,7 @@
 "use server";
 
+import { parseLocalDate } from "@/lib/utils/date";
+
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db";
@@ -191,73 +193,79 @@ export async function setTaskCompleted(
 }
 
 export type VelocityData = {
-  dateStr: string;
+  /** Short weekday label e.g. "Mon", "Tue" — stable display key for the chart */
+  day: string;
+  /** Internal YYYY-MM-DD string used for DB boundary queries */
+  _dateStr: string;
   created: number;
   completed: number;
 };
 
-export async function getWeeklyVelocity(): Promise<VelocityData[]> {
+export async function getWeeklyVelocity(
+  /** Client-supplied local YYYY-MM-DD string (e.g. from toLocaleDateString("en-CA"))
+   *  Prevents UTC-drift for users in UTC+N timezones like Africa/Nairobi (UTC+3). */
+  todayStr?: string
+): Promise<VelocityData[]> {
   const { userId } = await auth();
   if (!userId) return [];
 
   try {
     await connectDB();
-    
-    // Create base pristine array for the last 7 days (en-CA localized strings)
+
+    // Anchor to local "today" — if client supplies a date string use it,
+    // otherwise fall back to server locale (en-CA = YYYY-MM-DD format).
+    const localTodayStr = todayStr || new Date().toLocaleDateString("en-CA");
+
+    // parseLocalDate builds Date at 00:00:00 local time — no UTC drift
+    const todayDate = parseLocalDate(localTodayStr);
+
+    // Build the pristine 7-day scaffold using the same manual string
+    // reconstruction pattern as lib/utils/timeline.ts
     const velocity: VelocityData[] = [];
-    const today = new Date();
-    
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
+      const d = new Date(todayDate);
       d.setDate(d.getDate() - i);
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      velocity.push({
-        dateStr: `${year}-${month}-${day}`,
-        created: 0,
-        completed: 0,
-      });
+      const dayNum = String(d.getDate()).padStart(2, "0");
+      const _dateStr = `${year}-${month}-${dayNum}`;
+      // Short weekday label: "Mon", "Tue", etc.
+      const day = d.toLocaleDateString("en-US", { weekday: "short" });
+      velocity.push({ day, _dateStr, created: 0, completed: 0 });
     }
 
-    const oldestDateStr = velocity[0]?.dateStr || "";
-    const oldestDate = new Date(oldestDateStr + "T00:00:00");
+    // DB boundary: midnight at the start of the oldest day in the window
+    const oldestDate = parseLocalDate(velocity[0]!._dateStr);
 
-    // Fetch tasks created or completed in the last 7 days
+    // Fetch only tasks that fall inside the 7-day window
     const tasks = await Task.find({
       userId,
       $or: [
         { createdAt: { $gte: oldestDate } },
-        { completedAt: { $gte: oldestDate } }
-      ]
+        { completedAt: { $gte: oldestDate } },
+      ],
     }).lean<ITask[]>();
 
-    // Reduce over pristine array using en-CA string parsing
-    tasks.forEach(task => {
-      // Safely parse creation day
+    // Tally counts — use manual string reconstruction (no .toISOString()) to
+    // stay in local time and avoid UTC midnight boundary crossings
+    tasks.forEach((task) => {
+      // Creation day
       const cDate = new Date(task.createdAt);
-      const cYear = cDate.getFullYear();
-      const cMonth = String(cDate.getMonth() + 1).padStart(2, "0");
-      const cDay = String(cDate.getDate()).padStart(2, "0");
-      const cStr = `${cYear}-${cMonth}-${cDay}`;
+      const cStr = `${cDate.getFullYear()}-${String(cDate.getMonth() + 1).padStart(2, "0")}-${String(cDate.getDate()).padStart(2, "0")}`;
+      const cIdx = velocity.findIndex((v) => v._dateStr === cStr);
+      if (cIdx !== -1) velocity[cIdx]!.created++;
 
-      const cIndex = velocity.findIndex(v => v.dateStr === cStr);
-      if (cIndex !== -1 && velocity[cIndex]) velocity[cIndex]!.created++;
-
-      // Safely parse completion day if available
+      // Completion day (only when immutable completedAt is set)
       if (task.isCompleted && task.completedAt) {
         const dDate = new Date(task.completedAt);
-        const dYear = dDate.getFullYear();
-        const dMonth = String(dDate.getMonth() + 1).padStart(2, "0");
-        const dDay = String(dDate.getDate()).padStart(2, "0");
-        const dStr = `${dYear}-${dMonth}-${dDay}`;
-        
-        const dIndex = velocity.findIndex(v => v.dateStr === dStr);
-        if (dIndex !== -1 && velocity[dIndex]) velocity[dIndex]!.completed++;
+        const dStr = `${dDate.getFullYear()}-${String(dDate.getMonth() + 1).padStart(2, "0")}-${String(dDate.getDate()).padStart(2, "0")}`;
+        const dIdx = velocity.findIndex((v) => v._dateStr === dStr);
+        if (dIdx !== -1) velocity[dIdx]!.completed++;
       }
     });
 
-    return velocity;
+    // Strip internal _dateStr before returning — chart only needs day, created, completed
+    return velocity.map(({ day, created, completed }) => ({ day, _dateStr: "", created, completed }));
   } catch (err) {
     console.error("[getWeeklyVelocity] Failed:", err);
     return [];
