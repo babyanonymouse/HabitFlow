@@ -6,6 +6,7 @@ import { setTaskCompleted } from "@/lib/actions/task.actions";
 import HabitCarousel from "./HabitCarousel";
 import PriorityTaskList from "./PriorityTaskList";
 import AiIntelligenceSlot from "./AiIntelligenceSlot";
+import WeeklySnapshot from "./WeeklySnapshot";
 import { Activity } from "lucide-react";
 
 export default function NerveCenterClient({ initialData }: { initialData: any }) {
@@ -53,6 +54,9 @@ export default function NerveCenterClient({ initialData }: { initialData: any })
         </p>
       </div>
 
+      {/* Weekly Snapshot — always visible, even when today's list is empty */}
+      <WeeklySnapshot snapshot={initialData.weeklySnapshot} />
+
       {isDoubleEmpty ? (
         <div className="py-16 px-6 flex flex-col items-center justify-center text-center space-y-6 border border-zinc-800 rounded-3xl bg-zinc-900/50 relative overflow-hidden">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
@@ -73,7 +77,7 @@ export default function NerveCenterClient({ initialData }: { initialData: any })
             {optHabits.length > 0 && (
               <HabitCarousel habits={optHabits} onCheckOff={handleCheckOffHabit} todayStr={initialData.todayStr} />
             )}
-            
+
             {optTasks.length > 0 && (
               <PriorityTaskList tasks={optTasks} onComplete={handleCompleteTask} />
             )}

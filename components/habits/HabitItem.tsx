@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState } from "react";
+import { useOptimistic, useState, startTransition } from "react";
 import { Flame, Check, Trash2, Loader2 } from "lucide-react";
 import { checkOffHabit, deleteHabit } from "@/lib/actions/habit.actions";
 import { calculateStreak } from "@/lib/utils/date";
@@ -32,8 +32,10 @@ export default function HabitItem({ habit }: { habit: any }) {
   async function handleCheckOff() {
     if (isCompletedToday) return;
 
-    // Instantly update the UI
-    setOptimisticHabit(todayStr);
+    // Instantly update the UI — must be inside startTransition (React 19 useOptimistic contract)
+    startTransition(() => {
+      setOptimisticHabit(todayStr);
+    });
 
     try {
       await checkOffHabit({ habitId: habit._id, localDateString: todayStr });
