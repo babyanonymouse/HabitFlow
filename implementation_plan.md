@@ -18,7 +18,7 @@ I strongly recommend a **Hybrid Approach**:
 - Add an aggregation wrapper (`getWeeklyVelocity()`) comparing `tasksCreated` and `tasksCompleted` over a rolling 7-day period.
 
 ### Frontend Re-Architecture
-#### [NEW] `components/charts/ConsistencyHeatmap.tsx`
+#### [NEW] [components/charts/ConsistencyHeatmap.tsx](file:///media/Hybrid/Coding/habitflow/components/charts/ConsistencyHeatmap.tsx)
 - Tailwind HTML Component. Iterate through [TimelineMap](file:///media/Hybrid/Coding/habitflow/lib/utils/timeline.ts#8-51) mapping sizes and density colors (`zinc-900` to `indigo-500`).
 
 #### [NEW] `components/charts/VelocityChart.tsx`
@@ -48,7 +48,7 @@ The generator perfectly resolves the gap days where no completion exists, guaran
 ---
 
 ## HF-15 Exact Technical Plan: The Consistency Heatmap (UI)
-**Objective**: Build `components/charts/ConsistencyHeatmap.tsx`.
+**Objective**: Build [components/charts/ConsistencyHeatmap.tsx](file:///media/Hybrid/Coding/habitflow/components/charts/ConsistencyHeatmap.tsx).
 
 **Architecture**: 
 - **Server Component Strategy**: This will be a standard React component that takes `completedDates` as props, ensuring no heavy chart JS is sent to the client.
@@ -56,9 +56,34 @@ The generator perfectly resolves the gap days where no completion exists, guaran
 - **CSS Grid Geometry (Tailwind)**: Evaluates via `grid grid-rows-7 grid-flow-col gap-1.5`. `grid-flow-col` forces the 35 squares to fill top-to-bottom iteratively before breaking to the next column, mimicking GitHub's historical view correctly (oldest dates on the left).
 - **Zero-Drag Native Tooltips**: Utilizes raw HTML `title={day.dateStr}` for hover inspection, entirely avoiding tooltip computation scripts.
 - **Binary Contrast Colors**: `bg-indigo-500` (accompanied by a subtle glowing border/shadow) for completions, and `bg-zinc-900 border border-zinc-800/60` for gaps. 
-- **Integration**: We will embed this directly within the `/dashboard/habits` ([HabitList](file:///media/Hybrid/Coding/habitflow/components/habits/HabitList.tsx#6-15)) view—likely expanding the [HabitItem](file:///media/Hybrid/Coding/habitflow/components/habits/HabitItem.tsx#8-122) cards so that each habit distinctly visualizes its last 35 days.
+- **Integration**: We will embed this directly within the `/dashboard/habits` ([HabitList](file:///media/Hybrid/Coding/habitflow/components/habits/HabitList.tsx#6-15)) view—likely expanding the [HabitItem](file:///media/Hybrid/Coding/habitflow/components/habits/HabitItem.tsx#9-131) cards so that each habit distinctly visualizes its last 35 days.
 
 ## Validation Metrics
 1. Pure Type Safety (`tsc --noEmit`).
 2. Maximum payload verification mapping through our existing [serialize()](file:///media/Hybrid/Coding/habitflow/lib/utils/serialization.ts#1-7) utility.
 3. No noticeable drag added to LCP for the Heatmap.
+
+---
+
+## HF-16 Exact Technical Plan: Velocity Charts (Recharts Integration)
+**Objective**: Build `components/charts/VelocityChart.tsx` and data aggregation to track Task velocity natively over 7 days.
+
+**Architecture**: 
+1. **Zero-Drift Aggregation (`getWeeklyVelocity` action)**:
+   - Instead of complex MongoDB aggregations (`$group` on Dates) that historically suffer from UTC timezone drift, we will retrieve raw tasks modified or created in the last 7 days via a single index scan `Task.find()`.
+   - Run a lightweight in-memory `.reduce()` passing dates through our bulletproof `en-CA` local string reconstruction logic.
+   - Generates an exact array of 7 items (oldest to newest): `{ dateStr: string, created: number, completed: number }`.
+2. **Recharts Component (`VelocityChart.tsx`)**:
+   - Wrap `recharts` in a pure Client Component boundary.
+   - Render a dual-axis visual (e.g. `AreaChart` or `BarChart`).
+   - **Metric 1 (Created)**: Subtle `zinc-600` styling.
+   - **Metric 2 (Completed)**: High-contrast `indigo-500` or `emerald-500`.
+   - Hook into Tailwind CSS variables for aesthetic consistency.
+
+### HF-16 Exact Aggregation Algorithm
+1. **Base Array**: Create a pristine array of 7 days (e.g., {"2026-03-16", created: 0, completed: 0}) using the same local parsing logic from [timeline.ts](file:///media/Hybrid/Coding/habitflow/lib/utils/timeline.ts) to ensure 0 UTC midnight drift.
+2. **Query**: Fetch tasks belonging to the user where either `createdAt` OR `updatedAt` is greater than or equal to the oldest day in our 7-day array.
+3. **Map/Reduce**: 
+   - Parse each task's `createdAt` string securely to a local `en-CA` format. Match it to our 7-day array, and increment `created`.
+   - If the task `isCompleted === true`, parse its `updatedAt` securely. Match it to our 7-day array, and increment `completed`.
+4. **Return**: The pristine 7-day array `VelocityData[]`.
