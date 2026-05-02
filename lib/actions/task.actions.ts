@@ -20,6 +20,7 @@ export type TaskDTO = {
   description?: string;
   priority: "low" | "medium" | "high";
   isCompleted: boolean;
+  completedAt?: string;
   privacyMode: boolean;
   deadline?: string;
   createdAt: string;
@@ -33,6 +34,7 @@ type TaskDocLike = Pick<
   | "description"
   | "priority"
   | "isCompleted"
+  | "completedAt"
   | "privacyMode"
   | "deadline"
   | "createdAt"
@@ -46,6 +48,7 @@ function toTaskDTO(t: TaskDocLike): TaskDTO {
     description: t.description ?? undefined,
     priority: t.priority,
     isCompleted: t.isCompleted,
+    completedAt: t.completedAt ? new Date(t.completedAt).toISOString() : undefined,
     privacyMode: t.privacyMode,
     deadline: t.deadline ? new Date(t.deadline).toISOString() : undefined,
     createdAt: new Date(t.createdAt).toISOString(),
@@ -169,9 +172,13 @@ export async function setTaskCompleted(
 
   try {
     await connectDB();
+    const updatePayload = parsed.isCompleted
+      ? { isCompleted: true, completedAt: new Date() }
+      : { isCompleted: false, $unset: { completedAt: 1 } };
+
     const updated = await Task.findOneAndUpdate(
       { _id: parsed._id, userId },
-      { isCompleted: parsed.isCompleted },
+      updatePayload as any,
       { new: true }
     );
     if (!updated) throw new Error("404 Not Found");
@@ -180,5 +187,79 @@ export async function setTaskCompleted(
   } catch (err) {
     console.error("[setTaskCompleted] Failed:", err);
     throw err;
+  }
+}
+
+export type VelocityData = {
+  dateStr: string;
+  created: number;
+  completed: number;
+};
+
+export async function getWeeklyVelocity(): Promise<VelocityData[]> {
+  const { userId } = await auth();
+  if (!userId) return [];
+
+  try {
+    await connectDB();
+    
+    // Create base pristine array for the last 7 days (en-CA localized strings)
+    const velocity: VelocityData[] = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      velocity.push({
+        dateStr: `${year}-${month}-${day}`,
+        created: 0,
+        completed: 0,
+      });
+    }
+
+    const oldestDateStr = velocity[0]?.dateStr || "";
+    const oldestDate = new Date(oldestDateStr + "T00:00:00");
+
+    // Fetch tasks created or completed in the last 7 days
+    const tasks = await Task.find({
+      userId,
+      $or: [
+        { createdAt: { $gte: oldestDate } },
+        { completedAt: { $gte: oldestDate } }
+      ]
+    }).lean<ITask[]>();
+
+    // Reduce over pristine array using en-CA string parsing
+    tasks.forEach(task => {
+      // Safely parse creation day
+      const cDate = new Date(task.createdAt);
+      const cYear = cDate.getFullYear();
+      const cMonth = String(cDate.getMonth() + 1).padStart(2, "0");
+      const cDay = String(cDate.getDate()).padStart(2, "0");
+      const cStr = `${cYear}-${cMonth}-${cDay}`;
+
+      const cIndex = velocity.findIndex(v => v.dateStr === cStr);
+      if (cIndex !== -1 && velocity[cIndex]) velocity[cIndex]!.created++;
+
+      // Safely parse completion day if available
+      if (task.isCompleted && task.completedAt) {
+        const dDate = new Date(task.completedAt);
+        const dYear = dDate.getFullYear();
+        const dMonth = String(dDate.getMonth() + 1).padStart(2, "0");
+        const dDay = String(dDate.getDate()).padStart(2, "0");
+        const dStr = `${dYear}-${dMonth}-${dDay}`;
+        
+        const dIndex = velocity.findIndex(v => v.dateStr === dStr);
+        if (dIndex !== -1 && velocity[dIndex]) velocity[dIndex]!.completed++;
+      }
+    });
+
+    return velocity;
+  } catch (err) {
+    console.error("[getWeeklyVelocity] Failed:", err);
+    return [];
   }
 }

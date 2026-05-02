@@ -5,6 +5,7 @@ export interface ITask extends Document {
   title: string;                        // max 100 chars
   description?: string;                 // max 500 chars
   isCompleted: boolean;
+  completedAt?: Date;                   // immutable history for charts
   privacyMode: boolean;                 // filters task from AI context
   priority: "low" | "medium" | "high"; // AI focus ranking
   deadline?: Date;                      // AI deadline awareness
@@ -18,6 +19,7 @@ const TaskSchema = new Schema<ITask>(
     title:       { type: String, required: true, trim: true, maxlength: 100 },
     description: { type: String, trim: true, maxlength: 500 },
     isCompleted: { type: Boolean, default: false },
+    completedAt: { type: Date },
     privacyMode: { type: Boolean, default: false },
     priority:    { type: String, enum: ["low", "medium", "high"], default: "medium" },
     deadline:    { type: Date },
